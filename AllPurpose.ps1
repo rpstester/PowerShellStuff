@@ -253,13 +253,12 @@ function remove-LocalGroupMember {
 <#
 .SYNOPSIS
  Remotely removes a user from a local group, assuming adequate permissions
-.DESCRIPTION (original)
-Add users to a local group group remotely
- firewall must [allow access to] remote pc 
+.DESCRIPTION 
+ (original): Add users to a local group group remotely
+ Firewall must [allow access to] remote pc 
  Enjoy!
  By Maxzor1908 *1/11/2012*
  You may be tempted to use net localgroup, but remember that it cannot do names longer than 20 characters, but this one can.
- Adapted by Roger P Seekell on 4-22-13
 .PARAMETER ComputerName
  One or more computers to remove the given user from the given local group. Default is the localhost (by name).
 .PARAMETER Identity
@@ -269,6 +268,8 @@ Add users to a local group group remotely
 .EXAMPLE
  remove-LocalGroupUser -ComputerName 000-5500-mis-01 -Identity bob -Group "remote desktop users"
  Will remove user DOMAIN\bob from the local group "Remote Desktop Users" on computer 000-5500-mis-01
+.NOTES
+ Adapted by Roger P Seekell on 4-22-13
 #>
 Param (
     [parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)][Alias("cn")][string[]]$ComputerName = @($env:computername),
@@ -337,12 +338,20 @@ Param (
 Begin{
     #variables
     #$WMIdate = gwmi win32_bios #just need a "quick-n-easy" WMI for its method
+    $dcom = New-CimSessionOption -Protocol Dcom
 }
 process {
     foreach ($comp in $ComputerName) {
+        if ($comp -like "*$") {#if it ends in a dollar sign
+            $comp = $comp.substring(0,$comp.length-1) #strip off the last character
+        }
+            
         #gwmi win32_operatingsystem -cn $comp | select @{l="ComputerName";e={$_.csname}}, @{l="LastBootTime";e={$WMIdate.converttoDateTime($_.lastbootuptime)}}, 
           #@{l="Uptime";e={(Get-Date).Subtract($WMIdate.converttoDateTime($_.lastbootuptime))}}
-        Get-CimInstance win32_operatingsystem -ComputerName $comp | Select-Object @{l="ComputerName";e={$_.csname}}, LastBootUpTime, @{l="Uptime";e={(Get-Date).Subtract($_.lastbootuptime)}}
+        $sess = New-CimSession -ComputerName $comp -SessionOption $dcom
+        if ($sess) {
+            Get-CimInstance win32_operatingsystem -CimSession $sess | Select-Object @{l="ComputerName";e={$_.csname}}, LastBootUpTime, @{l="Uptime";e={(Get-Date).Subtract($_.lastbootuptime)}}
+        }
     }
 }
 
@@ -413,7 +422,7 @@ foreach ($comp in $ComputerName) {
         if ($CSData) { #if one can reach a basic WMI class, indicating connectivity and proper remote settings
             $model = $CSData.manufacturer.replace("Dell Inc.","Dell").replace("Microsoft Corporation","MS").replace(" Computer Corporation","").replace("Hewlett-Packard","HP")
             $model += " " + $CSData.model.replace("PowerEdge","PE").replace("Virtual Machine", "VM").replace("PC","").replace("Small Form Factor","SFF")
-            $model = $model.replace("HP HP","HP")
+            $model = $model.replace("HP HP","HP").Replace("VMware, Inc. VMware","VMware")
             if ($CSData.NumberOfLogicalProcessors) { #this property not always available
                 $cores = $CSData.NumberOfLogicalProcessors
             }
@@ -517,7 +526,14 @@ end {
 }#end function
 #---------------------------------------
 function connect-Office365Session {
-    $sess = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential '@jefferson.kyschools.us' -Authentication basic -AllowRedirection
+<#
+.SYNOPSIS 
+ Use this function to connect to Office 365 PowerShell session; supply credentials, or else it will prompt for them.
+#>
+Param (
+[pscredential]$credential = '@jefferson.kyschools.us'
+)
+    $sess = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $credential -Authentication basic -AllowRedirection
     Import-PSSession -Session $sess
 }#end function
 #---------------------------------------
