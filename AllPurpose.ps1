@@ -1,6 +1,6 @@
 ﻿<#
 A set of general-purpose functions useful in a variety of contexts, sometimes called upon by other modules.
-Roger P Seekell, ???, 10-1-15
+Roger P Seekell, ???, 10-1-15, 11-2-17
 #>
 function get-ComputerNames {
 <#
@@ -277,11 +277,6 @@ Param (
     [parameter(Mandatory=$true)][string]$Group = ""
 
 )
-<#
-$group = Read-Host "Enter the group you want a user to add in"
-$user = Read-Host "enter domain user id"
-$pc = Read-Host "enter pc number"
-#>
 
 process {
 $ComputerName | ForEach-Object {
@@ -337,7 +332,6 @@ Param (
 )
 Begin{
     #variables
-    #$WMIdate = gwmi win32_bios #just need a "quick-n-easy" WMI for its method
     $dcom = New-CimSessionOption -Protocol Dcom
 }
 process {
@@ -345,9 +339,8 @@ process {
         if ($comp -like "*$") {#if it ends in a dollar sign
             $comp = $comp.substring(0,$comp.length-1) #strip off the last character
         }
-            
-        #gwmi win32_operatingsystem -cn $comp | select @{l="ComputerName";e={$_.csname}}, @{l="LastBootTime";e={$WMIdate.converttoDateTime($_.lastbootuptime)}}, 
-          #@{l="Uptime";e={(Get-Date).Subtract($WMIdate.converttoDateTime($_.lastbootuptime))}}
+        
+        #connect via CIM using DCOM (for backwards compatibility)    
         $sess = New-CimSession -ComputerName $comp -SessionOption $dcom
         if ($sess) {
             Get-CimInstance win32_operatingsystem -CimSession $sess | Select-Object @{l="ComputerName";e={$_.csname}}, LastBootUpTime, @{l="Uptime";e={(Get-Date).Subtract($_.lastbootuptime)}}
@@ -439,7 +432,6 @@ foreach ($comp in $ComputerName) {
             $CPUData = @(Get-WmiObject win32_processor -ComputerName $comp) #could return multiple objects, one per proc
             $CPUCount = $CPUData.count
             #assuming identical processors...
-            #$CPUBrand = $CPUData[0].Manufacturer
             $indexofSpeed = $CPUData[0].name.indexof("@")
             #in case doesn't include @ sign for speed
             if ($indexofSpeed -lt 0) {
@@ -531,7 +523,7 @@ function connect-Office365Session {
  Use this function to connect to Office 365 PowerShell session; supply credentials, or else it will prompt for them.
 #>
 Param (
-[pscredential]$credential = '@jefferson.kyschools.us'
+[Parameter(Mandatory)][pscredential]$credential
 )
     $sess = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $credential -Authentication basic -AllowRedirection
     Import-PSSession -Session $sess
