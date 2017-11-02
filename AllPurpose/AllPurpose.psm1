@@ -529,6 +529,110 @@ Param (
     Import-PSSession -Session $sess
 }#end function
 #---------------------------------------
+function measure-Path {
+<#
+.SYNOPSIS
+ Finds the total size of the given file or folder
+.DESCRIPTION
+ Like the File or Folder Properties window, gets the total size of the item and all subitems.  Works on UNC paths also.
+ Returns an object with the path (input) and total size.
+ Unlike some other cmdlets, this function takes SharePath (as from get-ServerShare) through the pipeline, as well as Path.
+ Roger P Seekell, 6-1-12, 6-17-14, 6-19-15 (bug fix)
+.PARAMETER Path
+ The full path of the folder to get the total size. Also called SharePath and FullName (for piping).
+.PARAMETER UnitSize
+ What unit to use to present the size.  Default is GB. Accepts any value that PowerShell knows: kb, mb, gb, etc.  An invalid value will cause an ArgumentException.
+.EXAMPLE
+measure-Path -SharePath \\file1\c$\share
+
+Path                                                  Count                     TotalSize TotalSizeGB
+----                                                  -----                     --------- -----------
+\\file1\c$\share                                   21390                   13400194864 12.48
+.EXAMPLE
+gci p:\scripts -Directory | measure-Path -UnitSize kb
+
+Path                                              Count                         TotalSize TotalSizeKB                                     
+----                                              -----                         --------- -----------                                     
+P:\scripts\ActiveDirectory                           46                            100311 97.96                                           
+P:\scripts\Clusters                                   4                              9008 8.80                                            
+P:\scripts\Computers                                 68                            415610 405.87                                          
+P:\scripts\GroupPolicy                                8                             26582 25.96                                           
+.EXAMPLE
+measure-Path -UnitSize kb -Path (gci p:\scripts -Directory | select -ExpandProperty fullname)
+(alternate of previous example, same results)
+.OUTPUTS
+ An object with the path (fullname), count of items in that folder, the total size in bytes, and the total size in the specified measurement (default is GB).
+#>
+Param(
+    [parameter(ValueFromPipelineByPropertyName=$true)][alias("SharePath","Fullname")][string[]]$Path = @(),
+    [string]$UnitSize = "GB"
+)
+begin{
+    $allowedUnitSizes = "KB", "MB", "GB", "TB", "PB"
+    #test parameter
+    if ($allowedUnitSizes -notcontains $UnitSize) {
+        throw New-Object System.ArgumentException "Invalid UnitSize.  Must be one of these: $allowedUnitSizes"
+    }
+    $UnitSize = $UnitSize.ToUpper()
+}
+process{
+    $path | ForEach-Object {    
+        $currentPath = $_
+        $measure = Get-ChildItem $_ -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property length -Sum -ErrorAction SilentlyContinue
+        if ($measure) {
+            New-Object PSObject | Select-Object @{l="Path";e={$currentPath}}, 
+                    @{l="Count";e={$measure.Count}}, 
+                    @{l="TotalSize";e={$measure.sum}}, 
+                    @{l="TotalSize$UnitSize";e={"{0:N2}" -f ($measure.sum / (Invoke-Expression "1$UnitSize"))}}
+        }
+        else {
+            Write-Debug "No files"
+            New-Object PSObject | Select-Object @{l="Path";e={$currentPath}}, 
+                    @{l="Count";e={0}}, 
+                    @{l="TotalSize";e={0}}, 
+                    @{l="TotalSize$UnitSize";e={"0.00"}}
+        }
+    }#end foreach
+}#end process
+}#end function
+#---------------------------------------
+function Search-Script 
+{
+<#
+.SYNOPSIS
+ Searches PS1 files for a word or phrase
+.DESCRIPTION
+ Given a search phrase and location, will look in the code for the search string, then display matches in a grid view.  Any items selected will be opened in PowerShell ISE.
+ Taken from http://powershell.com/cs/blogs/tips/archive/2015/08/20/quickly-finding-scripts.aspx
+ Roger P Seekell, 8-20-15, 6-26-17
+.PARAMETER SearchPhrase
+ Required, what search string to look for in the PowerShell files
+.PARAMETER Path
+ In what folder to search (limit one). Default is My Documents
+.PARAMETER IncludeAllPSFiles
+ If specified, will include PowerShell modules (psm1) and manifests (psd1); default is just PowerShell script (PS1) files.  
+.EXAMPLE
+ Search-Script 'childitem' 
+#>
+  param 
+  (
+    [Parameter(Mandatory = $true)]$SearchPhrase, 
+    $Path = [Environment]::GetFolderPath('MyDocuments'),
+    [switch]$IncludeAllPSFiles = $false
+  )
+ $psfilter = "*.ps1"
+ if ($IncludeAllPSFiles) {
+    $psfilter = "*.ps*1"
+ }
+    Get-ChildItem -Path $Path  -Filter $psfilter -Recurse -ErrorAction SilentlyContinue | 
+        Select-String -Pattern $SearchPhrase -List | 
+        Select-Object -Property Path, Line, @{l="dateModified";e={(Get-Item $_.path).LastWriteTime}} | 
+        Out-GridView -Title "Choose a Script containing $SearchPhrase to open in ISE" -PassThru | 
+        ForEach-Object -Process {
+            ise $_.Path
+        }
+}#end function
+#---------------------------------------
 function start-ProgressCountdown {
 <#
 .SYNOPSIS
