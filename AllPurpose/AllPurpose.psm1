@@ -530,6 +530,62 @@ Param (
     Import-PSSession -Session $sess
 }#end function
 #---------------------------------------
+function convertTo-ByteString {
+<#
+.SYNOPSIS
+ Converts an integer into a "byte string", like 1GB
+.DESCRIPTION
+ Given an integer value, divides by 1024 until the number is between 0 and 1024, then attaches the appropriate byte measurement.  Using Invoke-Expression will convert back to a number. 
+ Returns a string with a number and byte measurement abbreviation, the kind that PowerShell resolves.  See examples.
+ The largest possible Value is 9223372036854775807 (according to [int64]::maxvalue). In simple terms, most 19-digit numbers and smaller will work.
+.NOTES
+ Roger P Seekell, ???
+.PARAMETER Value
+ The number to convert to a byte string.  It is an Int64, so should handle any size number that can be made into a byte string.
+.PARAMETER Round
+ How many decimal places to round in the final answer. Can be from 0- [int]::maxvalue, but 20 is a more logical max since [int64] only holds 19 digits.
+.EXAMPLE
+ convertTo-ByteString
+ DESCRIPTION: Returns 0 rounded to three decimal places, as these are the default values.
+.EXAMPLE
+ convertTo-ByteString -Value 1024 -Round 1
+ DESCRIPTION: Returns the string "1.0KB" since 1024 bytes is 1KB, and 1 means rounded to one decimal place
+.EXAMPLE
+ Invoke-Expression (convertTo-ByteString -Value 1048576)
+ DESCRIPTION: Returns 1048576, because convertTo-ByteString 1048576 returns "1.000MB", and Invoke-Expression on that string returns the value of 1MB, which is 1048576.
+.EXAMPLE
+ convertTo-ByteString -Value (1PB/15TB) -Round 2
+ DESCRIPTION: Returns 68.00, because 1PB / 15TB = 68.26666667, but Value is an Int, so its fractional component is truncated.  
+#>
+Param (
+    [int64]$Value,
+    [int]$Round = 3
+)
+[double]$newValue = $Value #will store the final number (decimal between 0 and 1024)
+$loopCount = 0 #this number will determine the byte measurement
+$suffix = "" #will be the byte measurement suffix
+if ($Value -lt 0) {
+    Write-Error "Cannot convert negative numbers."
+}
+else {
+    while ($newValue -gt 1000) {
+        $loopCount++
+        $newValue = $newValue / 1024
+        if ($loopCount -eq 5) {
+            break #exit the loop, as this is the maximum value
+        }
+    }
+    switch($loopCount) {
+        1{$suffix = "KB"}
+        2{$suffix = "MB"}
+        3{$suffix = "GB"}
+        4{$suffix = "TB"}
+        5{$suffix = "PB"}
+    }#end switch
+    ("{0:n$Round}$suffix" -f $newValue).replace(",","")
+}#end else
+}#end function 
+#---------------------------------------
 function measure-Path {
 <#
 .SYNOPSIS
