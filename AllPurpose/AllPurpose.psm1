@@ -539,7 +539,7 @@ function convertTo-ByteString {
  Returns a string with a number and byte measurement abbreviation, the kind that PowerShell resolves.  See examples.
  The largest possible Value is 9223372036854775807 (according to [int64]::maxvalue). In simple terms, most 19-digit numbers and smaller will work.
 .NOTES
- Roger P Seekell, ???
+ Roger P Seekell, c. 7-9-2012
 .PARAMETER Value
  The number to convert to a byte string.  It is an Int64, so should handle any size number that can be made into a byte string.
 .PARAMETER Round
