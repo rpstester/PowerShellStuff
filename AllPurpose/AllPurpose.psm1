@@ -5,27 +5,27 @@ Roger P Seekell, ???, 10-1-15, 11-2-17
 function get-ComputerNames {
 <#
 .SYNOPSIS
- Returns an array of "computer name" strings of the same series, such as "000-mis-lab-nn".
+ Returns an array of "computer name" strings of the same series, such as "000-lab-nn".
 .DESCRIPTION
- Given a prefix, start number, and end number, returns a list of computer names with the last number part running the range of the start and end numbers (inclusive).
- See examples
+ Given a prefix, start number, and end number, returns a list of computer names with the last number part running the range of the start and end numbers (inclusive). 
+.NOTES
  Roger P Seekell, 2011, 2012, 2013
 .PARAMETER Prefix
- Mandatory. A string representing the "series" of the computer names to return.  All of the computer names in the returned array will start with this.  e.g. "000-5500-mis-" and leave off the last number. 
+ Mandatory. A string representing the "series" of the computer names to return.  All of the computer names in the returned array will start with this.  e.g. "000-5500-" and leave off the last number. 
 .PARAMETER StartNum
  A 0 or positive integer which specifies the lowest number in the computer-name "series" to return, such as 0 or 1.  The NoLeadingZero switch defines how to handle single-digit numbers in a two-digit slot.
  Default = 1
 .PARAMETER EndNum
  A positive integer (-gt 0) which specifies the highest number in the computer-name "series" to return, such as 10 or 25. The NoLeadingZero switch defines how to handle single-digit numbers in a two-digit slot.
 .PARAMETER NoLeadingZero
- If specified, instead of returning 000-5500-mis-01, it will return 000-5500-mis-1.  So if it is not specified, it will add a leading zero to a single-digit number before appending it to the computer name string.
+ If specified, instead of returning 000-5500-01, it will return 000-5500-1.  So if it is not specified, it will add a leading zero to a single-digit number before appending it to the computer name string.
 .PARAMETER Exclude
  The resulting list of computer names will not contain names ending in the numbers specified in this array.
 .PARAMETER TestConnection
  If specified, filters out the resulting list of computer names to only those that can be pinged (it will take much longer).
 .EXAMPLE
- get-ComputerNames 000-5500-mis- 1 3
- Yields the strings "000-5500-mis-01","000-5500-mis-02","000-5500-mis-03" 
+ get-ComputerNames 000-5500- 1 3
+ Yields the strings "000-5500-01","000-5500-02","000-5500-03" 
 .EXAMPLE
  get-ComputerNames 610-5800-150- 1 31 -TestConnection
  Yields only the strings between "610-5800-150-01" and "610-5800-150-31" that respond to ping.
@@ -120,6 +120,7 @@ function get-LocalGroupMember {
 .DESCRIPTION
  Given a computer name and group name, such as administrators, lists those accounts and basic info about them.
  Use -Indirect to show all users and groups nested within the local group. Recommended to pipe results to Format-Table.
+.NOTES
  Adapted from http://powershell.com/cs/blogs/tips/archive/2013/12/20/getting-local-group-members.aspx by Roger P Seekell on 12-23-13
  Bug fixes 6-17-15
 .PARAMETER ComputerName
@@ -132,7 +133,7 @@ function get-LocalGroupMember {
  get-LocalGroupMember administrators
  The minimum to run this function.  Lists the members of the local administrators group on localhost computer.
 .EXAMPLE
- "000-5500-mis-08", "000-5500-mis-12" | get-LocalGroupMember -Group "Remote Desktop Users"
+ "000-5500-08", "000-5500-12" | get-LocalGroupMember -Group "Remote Desktop Users"
  Command can take computer names via pipeline.  Group names with spaces must be in quotes. 
  RESULTS:
     Name         : Itinerant Teacher,
@@ -197,13 +198,10 @@ function add-LocalGroupMember {
 .SYNOPSIS
  Remotely adds a user to a local group, assuming adequate permissions
 .DESCRIPTION 
- (original)
- Add users to a local group group remotely
- firewall must [allow access to] remote pc 
- Enjoy!
- By Maxzor1908 *1/11/2012*
- (additional)
+ Add users to a local group group remotely; firewall must [allow access to] remote pc 
+.NOTEs
  You may be tempted to use net localgroup, but remember that it cannot do names longer than 20 characters, but this one can.
+ Original: Enjoy! By Maxzor1908 *1/11/2012*
  Adapted by Roger P Seekell on 4-11-13, 7-3
 .PARAMETER ComputerName
  One or more computers to add the given user to the given local group. Default is the localhost (by name).
@@ -214,8 +212,8 @@ function add-LocalGroupMember {
 .PARAMETER Domain
  Normally uses the logged-on-user's domain, but if necessary to use another, can enter it here (such as adding domain user while logged on as local administrator).
 .EXAMPLE
- add-LocalGroupUser -ComputerName 000-5500-mis-01 -Identity bob -Group "remote desktop users"
- Will add user DOMAIN\bob to the local group "Remote Desktop Users" on computer 000-5500-mis-01
+ add-LocalGroupUser -ComputerName 000-5500-01 -Identity bob -Group "remote desktop users"
+ Will add user DOMAIN\bob to the local group "Remote Desktop Users" on computer 000-5500-01
 #>
 Param (
     [parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)][Alias("cn")][string[]]$ComputerName = @($env:computername),
@@ -254,11 +252,11 @@ function remove-LocalGroupMember {
 .SYNOPSIS
  Remotely removes a user from a local group, assuming adequate permissions
 .DESCRIPTION 
- (original): Add users to a local group group remotely
- Firewall must [allow access to] remote pc 
- Enjoy!
- By Maxzor1908 *1/11/2012*
+ Remove users from a local group group remotely; firewall must [allow access to] remote pc 
+.NOTEs
  You may be tempted to use net localgroup, but remember that it cannot do names longer than 20 characters, but this one can.
+ Original: Enjoy! By Maxzor1908 *1/11/2012*
+ Adapted by Roger P Seekell on 4-22-13
 .PARAMETER ComputerName
  One or more computers to remove the given user from the given local group. Default is the localhost (by name).
 .PARAMETER Identity
@@ -266,10 +264,8 @@ function remove-LocalGroupMember {
 .PARAMETER Group
  Name of a local group, such as Administrators or "Remote Desktop Users".
 .EXAMPLE
- remove-LocalGroupUser -ComputerName 000-5500-mis-01 -Identity bob -Group "remote desktop users"
- Will remove user DOMAIN\bob from the local group "Remote Desktop Users" on computer 000-5500-mis-01
-.NOTES
- Adapted by Roger P Seekell on 4-22-13
+ remove-LocalGroupUser -ComputerName 000-5500-01 -Identity bob -Group "remote desktop users"
+ Will remove user DOMAIN\bob from the local group "Remote Desktop Users" on computer 000-5500-01
 #>
 Param (
     [parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)][Alias("cn")][string[]]$ComputerName = @($env:computername),
@@ -306,9 +302,10 @@ function Get-LastBootTime {
 .SYNOPSIS
  Gets the last boot-up time for the specified servers
 .DESCRIPTION
- Using WMI, connects to the remote computer(s) and returns a DateTime object representing the moment the server last started and the timespan between now and then.
+ Using CIM, connects to the remote computer(s) and returns a DateTime object representing the moment the server last started and the timespan between now and then.
  Able to resolve IP addresses to names.
- Switch to CIM on 10-13-15
+.NOTES
+ Roger P Seekell, ??, 10-13-15 (switch to CIM)
 .PARAMETER ComputerName
  One or more computer name strings to check the last boot time.  Can be piped in directly or by property name.
  Default is localhost.
@@ -321,7 +318,7 @@ function Get-LastBootTime {
 Get-LastBootTime localhost
 ComputerName                           LastBootTime                          Uptime
 ------------                           ------------                          ------
-000-5500-MIS-12                        8/12/2014 7:29:06 AM                  6.05:16:14.1054092
+000-5500-12                        8/12/2014 7:29:06 AM                  6.05:16:14.1054092
 #>
 Param (
     [Parameter(Position=0,                          
@@ -356,7 +353,8 @@ function get-ComputerSpecs {
  Returns OS, RAM, and hard drive specs for one or more computers.
 .DESCRIPTION
  This script/function gets specifications about a PC, including OS, RAM, CPU, and hard drive(s), using WMI queries.
- Roger Seekell, 8-7-12, 12-27, 1-16-14
+.NOTES
+ Roger P Seekell, 8-7-12, 12-27, 1-16-14
 .PARAMETER ComputerName
  One or more computer name strings to check their specifications.  Can be piped in directly or by property name.
  Default is localhost.
@@ -521,6 +519,9 @@ function connect-Office365Session {
 <#
 .SYNOPSIS 
  Use this function to connect to Office 365 PowerShell session; supply credentials, or else it will prompt for them.
+.DESCRIPTION
+ Given a credential, connects to Office 365 management PowerShell; then can run exchange cmdlets on Office 365.
+ Loads a session and a temp module based on user logging on.
 #>
 Param (
 [Parameter(Mandatory)][pscredential]$credential
@@ -537,6 +538,7 @@ function measure-Path {
  Like the File or Folder Properties window, gets the total size of the item and all subitems.  Works on UNC paths also.
  Returns an object with the path (input) and total size.
  Unlike some other cmdlets, this function takes SharePath (as from get-ServerShare) through the pipeline, as well as Path.
+.NOTES
  Roger P Seekell, 6-1-12, 6-17-14, 6-19-15 (bug fix)
 .PARAMETER Path
  The full path of the folder to get the total size. Also called SharePath and FullName (for piping).
@@ -603,6 +605,7 @@ function Search-Script
  Searches PS1 files for a word or phrase
 .DESCRIPTION
  Given a search phrase and location, will look in the code for the search string, then display matches in a grid view.  Any items selected will be opened in PowerShell ISE.
+.NOTES
  Taken from http://powershell.com/cs/blogs/tips/archive/2015/08/20/quickly-finding-scripts.aspx
  Roger P Seekell, 8-20-15, 6-26-17
 .PARAMETER SearchPhrase
@@ -639,6 +642,7 @@ function start-ProgressCountdown {
  Shows the progress of a second-based countdown
 .DESCRIPTION
  Given a number of seconds, shows a progress bar counting down each second and increasing completion to the end of the countdown.
+.NOTES
  Roger P Seekell, 9-18-15 
 .PARAMETER Seconds
  The number of seconds in the countdown
