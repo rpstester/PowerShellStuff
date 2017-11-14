@@ -515,21 +515,6 @@ end {
 }
 }#end function
 #---------------------------------------
-function connect-Office365Session {
-<#
-.SYNOPSIS 
- Use this function to connect to Office 365 PowerShell session; supply credentials, or else it will prompt for them.
-.DESCRIPTION
- Given a credential, connects to Office 365 management PowerShell; then can run exchange cmdlets on Office 365.
- Loads a session and a temp module based on user logging on.
-#>
-Param (
-[Parameter(Mandatory)][pscredential]$credential
-)
-    $sess = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $credential -Authentication basic -AllowRedirection
-    Import-PSSession -Session $sess
-}#end function
-#---------------------------------------
 function convertTo-ByteString {
 <#
 .SYNOPSIS
